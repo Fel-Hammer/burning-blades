@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "~/components/ui/table.tsx";
+import { Badge } from "~/components/ui/badge.tsx";
 
 const formSchema = z.object({
   initial: z.number().gte(0),
@@ -88,8 +89,10 @@ export async function action({ request }: ActionFunctionArgs) {
   });
 }
 
+const calcCloseness = 10;
 function calculate(
   title: string,
+  target: number,
   previousCalc: number,
   previousDesc: string,
   vers: number,
@@ -98,24 +101,51 @@ function calculate(
   const calc = previousCalc * multiplier;
   const desc =
     multiplier != 1 ? `${previousDesc}*${String(multiplier)}` : previousDesc;
+  const isCalcAccurate = Math.abs(calc - target) < calcCloseness;
+
   const preArmorMitigationCalc = calc * armorMitigationMultiplier;
   const preArmorMitigationDesc = `${desc}*${String(armorMitigationMultiplier)}`;
+  const isPreArmorMitigationCalcAccurate =
+    Math.abs(preArmorMitigationCalc - target) < calcCloseness;
+
   const versCalc = calc * vers;
   const versDesc = `${desc}*${String(vers)}`;
+  const isVersCalcAccurate = Math.abs(versCalc - target) < calcCloseness;
+
   const preArmorMitigationAndVersCalc = calc * armorMitigationMultiplier * vers;
   const preArmorMitigationAndVersDesc = `${desc}*${String(armorMitigationMultiplier)}*${String(vers)}`;
+  const isPreArmorMitigationVersCalcAccurate =
+    Math.abs(versCalc - target) < calcCloseness;
 
   return {
     title,
     calc,
     desc,
+    isCalcAccurate,
     preArmorMitigationCalc,
     preArmorMitigationDesc,
+    isPreArmorMitigationCalcAccurate,
     versCalc,
     versDesc,
+    isVersCalcAccurate,
     preArmorMitigationAndVersCalc,
     preArmorMitigationAndVersDesc,
+    isPreArmorMitigationVersCalcAccurate,
   };
+}
+
+function sortCalcs(
+  a: ReturnType<typeof calculate>,
+  b: ReturnType<typeof calculate>,
+): number {
+  return (
+    Number(b.isCalcAccurate) - Number(a.isCalcAccurate) ||
+    Number(b.isVersCalcAccurate) - Number(a.isVersCalcAccurate) ||
+    Number(b.isPreArmorMitigationCalcAccurate) -
+      Number(a.isPreArmorMitigationCalcAccurate) ||
+    Number(b.isPreArmorMitigationVersCalcAccurate) -
+      Number(a.isPreArmorMitigationVersCalcAccurate)
+  );
 }
 
 export async function loader({ request }: ActionFunctionArgs) {
@@ -158,6 +188,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
   const base = calculate(
     "No Multipliers",
+    data.tick,
     (data.initial * burningBladesMultiplier) / burningBladesNumberOfTicks,
     `(${String(data.initial)}*${String(burningBladesMultiplier)})/${String(burningBladesNumberOfTicks)}`,
     versMultiplier,
@@ -166,6 +197,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
   const chaosBrand = calculate(
     "Chaos Brand",
+    data.tick,
     base.calc,
     base.desc,
     versMultiplier,
@@ -173,6 +205,7 @@ export async function loader({ request }: ActionFunctionArgs) {
   );
   const burningBlood = calculate(
     "Burning Blood",
+    data.tick,
     base.calc,
     base.desc,
     versMultiplier,
@@ -180,6 +213,7 @@ export async function loader({ request }: ActionFunctionArgs) {
   );
   const fieryDemise = calculate(
     "Fiery Demise",
+    data.tick,
     base.calc,
     base.desc,
     versMultiplier,
@@ -188,6 +222,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
   const chaosBrandAndBurningBlood = calculate(
     "Chaos Brand + Burning Blood",
+    data.tick,
     chaosBrand.calc,
     chaosBrand.desc,
     versMultiplier,
@@ -195,6 +230,7 @@ export async function loader({ request }: ActionFunctionArgs) {
   );
   const chaosBrandAndFieryDemise = calculate(
     "Chaos Brand + Fiery Demise",
+    data.tick,
     chaosBrand.calc,
     chaosBrand.desc,
     versMultiplier,
@@ -203,6 +239,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
   const chaosBrandAndBurningBloodAndFieryDemise = calculate(
     "Chaos Brand + Burning Blood + Fiery Demise",
+    data.tick,
     chaosBrandAndBurningBlood.calc,
     chaosBrandAndBurningBlood.desc,
     versMultiplier,
@@ -222,7 +259,7 @@ export async function loader({ request }: ActionFunctionArgs) {
         chaosBrandAndBurningBlood,
         chaosBrandAndFieryDemise,
         chaosBrandAndBurningBloodAndFieryDemise,
-      ],
+      ].sort(sortCalcs),
     },
     {
       // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -341,6 +378,9 @@ function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
           <TableHeader>
             <TableRow>
               <TableHead>Formula</TableHead>
+              <TableHead className="hidden text-center sm:table-cell">
+                Verdict
+              </TableHead>
               <TableHead className="text-right">Value</TableHead>
             </TableRow>
           </TableHeader>
@@ -348,6 +388,13 @@ function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
             <TableRow>
               <TableCell>
                 <div className="font-medium font-mono">{calc.desc}</div>
+              </TableCell>
+              <TableCell className="hidden text-center sm:table-cell">
+                {calc.isCalcAccurate ? (
+                  <Badge>Accurate</Badge>
+                ) : (
+                  <Badge variant="secondary">Not Accurate</Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 {String(Math.ceil(calc.calc))}
@@ -359,6 +406,13 @@ function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
                 <div className="hidden text-sm text-muted-foreground md:inline">
                   Multiplied by Versatility
                 </div>
+              </TableCell>
+              <TableCell className="hidden text-center sm:table-cell">
+                {calc.isVersCalcAccurate ? (
+                  <Badge>Accurate</Badge>
+                ) : (
+                  <Badge variant="secondary">Not Accurate</Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 {String(Math.ceil(calc.versCalc))}
@@ -373,6 +427,13 @@ function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
                   Pre-armor Mitigation
                 </div>
               </TableCell>
+              <TableCell className="hidden text-center sm:table-cell">
+                {calc.isPreArmorMitigationCalcAccurate ? (
+                  <Badge>Accurate</Badge>
+                ) : (
+                  <Badge variant="secondary">Not Accurate</Badge>
+                )}
+              </TableCell>
               <TableCell className="text-right">
                 {String(Math.ceil(calc.preArmorMitigationCalc))}
               </TableCell>
@@ -385,6 +446,13 @@ function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
                 <div className="hidden text-sm text-muted-foreground md:inline">
                   Pre-armor Mitigation and multiplied by Versatility
                 </div>
+              </TableCell>
+              <TableCell className="hidden text-center sm:table-cell">
+                {calc.isPreArmorMitigationVersCalcAccurate ? (
+                  <Badge>Accurate</Badge>
+                ) : (
+                  <Badge variant="secondary">Not Accurate</Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 {String(Math.ceil(calc.preArmorMitigationAndVersCalc))}
