@@ -100,20 +100,20 @@ function calculate(
 ) {
   const calc = previousCalc * multiplier;
   const desc =
-    multiplier != 1 ? `${previousDesc}*${String(multiplier)}` : previousDesc;
+    multiplier != 1 ? `(${previousDesc})*${String(multiplier)}` : previousDesc;
   const isCalcAccurate = Math.abs(calc - target) < calcCloseness;
 
   const preArmorMitigationCalc = calc * armorMitigationMultiplier;
-  const preArmorMitigationDesc = `${desc}*${String(armorMitigationMultiplier)}`;
+  const preArmorMitigationDesc = `(${desc})*${String(armorMitigationMultiplier)}`;
   const isPreArmorMitigationCalcAccurate =
     Math.abs(preArmorMitigationCalc - target) < calcCloseness;
 
   const versCalc = calc * vers;
-  const versDesc = `${desc}*${String(vers)}`;
+  const versDesc = `(${desc})*${String(vers)}`;
   const isVersCalcAccurate = Math.abs(versCalc - target) < calcCloseness;
 
   const preArmorMitigationAndVersCalc = calc * armorMitigationMultiplier * vers;
-  const preArmorMitigationAndVersDesc = `${desc}*${String(armorMitigationMultiplier)}*${String(vers)}`;
+  const preArmorMitigationAndVersDesc = `((${desc})*${String(armorMitigationMultiplier)})*${String(vers)}`;
   const isPreArmorMitigationVersCalcAccurate =
     Math.abs(preArmorMitigationAndVersCalc - target) < calcCloseness;
 
