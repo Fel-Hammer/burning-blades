@@ -7,8 +7,24 @@ import { z } from "zod";
 
 import { Field, FieldError } from "~/components/Field.tsx";
 import { H1, H2, Lead } from "~/components/typography.tsx";
+import { Badge } from "~/components/ui/badge.tsx";
+import { Button } from "~/components/ui/button.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/components/ui/card.tsx";
 import { Input } from "~/components/ui/input.tsx";
 import { Label } from "~/components/ui/label.tsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "~/components/ui/table.tsx";
 import {
   armorMitigationMultiplier,
   burningBladesMultiplier,
@@ -20,22 +36,6 @@ import {
 import { referer, serverTiming } from "~/lib/constants";
 import { combineHeaders } from "~/lib/misc.ts";
 import { makeTimings, time } from "~/lib/timing.server.ts";
-import { Button } from "~/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card.tsx";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table.tsx";
-import { Badge } from "~/components/ui/badge.tsx";
 
 const formSchema = z.object({
   initial: z.number().gte(0),
