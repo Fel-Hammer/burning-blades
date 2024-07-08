@@ -4,3 +4,4 @@ export const eTag = "ETag";
 export const setCookie = "Set-Cookie";
 export const expires = "Expires";
 export const serverTiming = "Server-Timing";
+export const referer = "Referer";
