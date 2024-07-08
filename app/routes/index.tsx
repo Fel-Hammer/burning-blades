@@ -115,7 +115,7 @@ function calculate(
   const preArmorMitigationAndVersCalc = calc * armorMitigationMultiplier * vers;
   const preArmorMitigationAndVersDesc = `${desc}*${String(armorMitigationMultiplier)}*${String(vers)}`;
   const isPreArmorMitigationVersCalcAccurate =
-    Math.abs(versCalc - target) < calcCloseness;
+    Math.abs(preArmorMitigationAndVersCalc - target) < calcCloseness;
 
   return {
     title,
