@@ -1,12 +1,12 @@
 export const siteConfig = {
-  name: "Bomb or Cleave",
-  title: "Bomb or Cleave",
-  url: "https://bomb-or-cleave.vercel.app",
-  ogImage: "https://bomb-or-cleave.vercel.app/logo.webp",
+  name: "Burning Blades",
+  title: "Burning Blades",
+  url: "https://burning-blades.vercel.app",
+  ogImage: "https://burning-blades.vercel.app/logo.webp",
   description:
-    "Spirit Bomb vs Soul Cleave efficiency calculator for Vengeance Demon Hunter.",
+    "Burning Blades damage verifier for Fel-scarred Vengeance Demon Hunter.",
   links: {
-    github: "https://github.com/ToppleTheNun/bomb-or-cleave",
+    github: "https://github.com/ToppleTheNun/burning-blades",
     twitter: "https://twitter.com/ToppleTheNun",
   },
 };
