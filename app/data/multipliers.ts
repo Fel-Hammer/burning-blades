@@ -4,3 +4,4 @@ export const chaosBrandMultiplier = 1.05;
 export const armorMitigationMultiplier = 1.3;
 export const burningBloodMultiplier = 1.1;
 export const fieryDemiseMultiplier = 1.4;
+export const specAuraMultiplier = 1.15;

@@ -5,34 +5,21 @@ import type { ActionFunctionArgs } from "@vercel/remix";
 import { json, redirect } from "@vercel/remix";
 import { z } from "zod";
 
+import { CalculationCard } from "~/components/CalculationCard.tsx";
 import { Field, FieldError } from "~/components/Field.tsx";
 import { H1, H2, Lead } from "~/components/typography.tsx";
-import { Badge } from "~/components/ui/badge.tsx";
 import { Button } from "~/components/ui/button.tsx";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "~/components/ui/card.tsx";
 import { Input } from "~/components/ui/input.tsx";
 import { Label } from "~/components/ui/label.tsx";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table.tsx";
-import {
-  armorMitigationMultiplier,
   burningBladesMultiplier,
   burningBladesNumberOfTicks,
   burningBloodMultiplier,
   chaosBrandMultiplier,
   fieryDemiseMultiplier,
+  specAuraMultiplier,
 } from "~/data/multipliers.ts";
+import { calculate, sortCalcs } from "~/lib/calculate.ts";
 import { referer, serverTiming } from "~/lib/constants";
 import { combineHeaders } from "~/lib/misc.ts";
 import { makeTimings, time } from "~/lib/timing.server.ts";
@@ -87,65 +74,6 @@ export async function action({ request }: ActionFunctionArgs) {
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     headers: combineHeaders({ [serverTiming]: timings.toString() }),
   });
-}
-
-const calcCloseness = 10;
-function calculate(
-  title: string,
-  target: number,
-  previousCalc: number,
-  previousDesc: string,
-  vers: number,
-  multiplier: number,
-) {
-  const calc = previousCalc * multiplier;
-  const desc =
-    multiplier != 1 ? `(${previousDesc})*${String(multiplier)}` : previousDesc;
-  const isCalcAccurate = Math.abs(calc - target) < calcCloseness;
-
-  const preArmorMitigationCalc = calc * armorMitigationMultiplier;
-  const preArmorMitigationDesc = `(${desc})*${String(armorMitigationMultiplier)}`;
-  const isPreArmorMitigationCalcAccurate =
-    Math.abs(preArmorMitigationCalc - target) < calcCloseness;
-
-  const versCalc = calc * vers;
-  const versDesc = `(${desc})*${String(vers)}`;
-  const isVersCalcAccurate = Math.abs(versCalc - target) < calcCloseness;
-
-  const preArmorMitigationAndVersCalc = calc * armorMitigationMultiplier * vers;
-  const preArmorMitigationAndVersDesc = `((${desc})*${String(armorMitigationMultiplier)})*${String(vers)}`;
-  const isPreArmorMitigationVersCalcAccurate =
-    Math.abs(preArmorMitigationAndVersCalc - target) < calcCloseness;
-
-  return {
-    title,
-    calc,
-    desc,
-    isCalcAccurate,
-    preArmorMitigationCalc,
-    preArmorMitigationDesc,
-    isPreArmorMitigationCalcAccurate,
-    versCalc,
-    versDesc,
-    isVersCalcAccurate,
-    preArmorMitigationAndVersCalc,
-    preArmorMitigationAndVersDesc,
-    isPreArmorMitigationVersCalcAccurate,
-  };
-}
-
-function sortCalcs(
-  a: ReturnType<typeof calculate>,
-  b: ReturnType<typeof calculate>,
-): number {
-  return (
-    Number(b.isCalcAccurate) - Number(a.isCalcAccurate) ||
-    Number(b.isVersCalcAccurate) - Number(a.isVersCalcAccurate) ||
-    Number(b.isPreArmorMitigationCalcAccurate) -
-      Number(a.isPreArmorMitigationCalcAccurate) ||
-    Number(b.isPreArmorMitigationVersCalcAccurate) -
-      Number(a.isPreArmorMitigationVersCalcAccurate)
-  );
 }
 
 export async function loader({ request }: ActionFunctionArgs) {
@@ -211,6 +139,14 @@ export async function loader({ request }: ActionFunctionArgs) {
     versMultiplier,
     burningBloodMultiplier,
   );
+  const specAura = calculate(
+    "Spec Aura",
+    data.tick,
+    base.calc,
+    base.desc,
+    versMultiplier,
+    specAuraMultiplier,
+  );
   const fieryDemise = calculate(
     "Fiery Demise",
     data.tick,
@@ -228,6 +164,14 @@ export async function loader({ request }: ActionFunctionArgs) {
     versMultiplier,
     burningBloodMultiplier,
   );
+  const chaosBrandAndSpecAura = calculate(
+    "Chaos Brand + Spec Aura",
+    data.tick,
+    chaosBrand.calc,
+    chaosBrand.desc,
+    versMultiplier,
+    specAuraMultiplier,
+  );
   const chaosBrandAndFieryDemise = calculate(
     "Chaos Brand + Fiery Demise",
     data.tick,
@@ -235,6 +179,15 @@ export async function loader({ request }: ActionFunctionArgs) {
     chaosBrand.desc,
     versMultiplier,
     fieryDemiseMultiplier,
+  );
+
+  const burningBloodAndSpecAura = calculate(
+    "Burning Blood + Spec Aura",
+    data.tick,
+    burningBlood.calc,
+    burningBlood.desc,
+    versMultiplier,
+    specAuraMultiplier,
   );
 
   const chaosBrandAndBurningBloodAndFieryDemise = calculate(
@@ -255,9 +208,12 @@ export async function loader({ request }: ActionFunctionArgs) {
         base,
         chaosBrand,
         burningBlood,
+        specAura,
         fieryDemise,
         chaosBrandAndBurningBlood,
+        chaosBrandAndSpecAura,
         chaosBrandAndFieryDemise,
+        burningBloodAndSpecAura,
         chaosBrandAndBurningBloodAndFieryDemise,
       ].sort(sortCalcs),
     },
@@ -364,104 +320,6 @@ function CalculationForm() {
         </Button>
       </div>
     </Form>
-  );
-}
-
-function CalculationCard({ calc }: { calc: ReturnType<typeof calculate> }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{calc.title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Formula</TableHead>
-              <TableHead className="hidden text-center sm:table-cell">
-                Verdict
-              </TableHead>
-              <TableHead className="text-right">Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow>
-              <TableCell>
-                <div className="font-medium font-mono">{calc.desc}</div>
-              </TableCell>
-              <TableCell className="hidden text-center sm:table-cell">
-                {calc.isCalcAccurate ? (
-                  <Badge>Accurate</Badge>
-                ) : (
-                  <Badge variant="secondary">Not Accurate</Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {String(Math.ceil(calc.calc))}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <div className="font-medium font-mono">{calc.versDesc}</div>
-                <div className="hidden text-sm text-muted-foreground md:inline">
-                  Multiplied by Versatility
-                </div>
-              </TableCell>
-              <TableCell className="hidden text-center sm:table-cell">
-                {calc.isVersCalcAccurate ? (
-                  <Badge>Accurate</Badge>
-                ) : (
-                  <Badge variant="secondary">Not Accurate</Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {String(Math.ceil(calc.versCalc))}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <div className="font-medium font-mono">
-                  {calc.preArmorMitigationDesc}
-                </div>
-                <div className="hidden text-sm text-muted-foreground md:inline">
-                  Pre-armor Mitigation
-                </div>
-              </TableCell>
-              <TableCell className="hidden text-center sm:table-cell">
-                {calc.isPreArmorMitigationCalcAccurate ? (
-                  <Badge>Accurate</Badge>
-                ) : (
-                  <Badge variant="secondary">Not Accurate</Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {String(Math.ceil(calc.preArmorMitigationCalc))}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>
-                <div className="font-medium font-mono">
-                  {calc.preArmorMitigationAndVersDesc}
-                </div>
-                <div className="hidden text-sm text-muted-foreground md:inline">
-                  Pre-armor Mitigation and multiplied by Versatility
-                </div>
-              </TableCell>
-              <TableCell className="hidden text-center sm:table-cell">
-                {calc.isPreArmorMitigationVersCalcAccurate ? (
-                  <Badge>Accurate</Badge>
-                ) : (
-                  <Badge variant="secondary">Not Accurate</Badge>
-                )}
-              </TableCell>
-              <TableCell className="text-right">
-                {String(Math.ceil(calc.preArmorMitigationAndVersCalc))}
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
   );
 }
 
