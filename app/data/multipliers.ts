@@ -1,4 +1,4 @@
-export const burningBladesMultiplier = 0.1;
+export const burningBladesMultiplier = 0.6;
 export const burningBladesNumberOfTicks = 3;
 export const chaosBrandMultiplier = 1.05;
 export const armorMitigationMultiplier = 1.3;
